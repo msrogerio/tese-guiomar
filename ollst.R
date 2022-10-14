@@ -19,7 +19,13 @@ source.with.encoding("OLLST-gamlss.R", encoding = 'UTF-8')
 
 # Importacao do dados
 dados = read.table('r1.txt', h=T)
+dados <- data.frame(dados)
+
 attach(dados)
+
+dados <- dados[order(dados$EP, decreasing=F), ] 
+names(dados)
+# No caso, ordena de acordo por w em ordem alfabética inversa, x em ordem alfabética e y em ordem decrescente. Se quiser que tudo seja na mesma ordem, basta um TRUE ou FALSE, que valerá para todos.
 
 # Mostragem dos dados
 View(dados)
@@ -41,11 +47,15 @@ histDist(dados$RESP, family = "OLLST", xlab = 'Resposta', ylab = 'Frequência')
 # Presença de bimodalidade
 
 # Tratamento das vaiáveis de trabalho
-especie = factor(dados$ESP)
-epoca = factor(dados$EP)
+especie = as.factor(dados$ESP)
+length(especie)
+epoca = as.factor(dados$EP)
+length(epoca)
 resposta = dados$RESP
+resposta
+length(resposta)
 
-modelo <-gamlss(resposta~re(fixed=~especie+epoca:especie, random=~1|especie), data=dados, family = "OLLST")
+modelo <-gamlss(resposta~re(fixed=~especie+epoca:especie, random=~1|Subject), data=dados, family = "OLLST")
 
 summary(modelo)
 coef(getSmo(modelo))
@@ -55,8 +65,6 @@ summary(getSmo(modelo))
 intervals(getSmo(modelo))
 fitted(getSmo(modelo))
 fixef(getSmo(modelo))
-
-
 
 r = residuals(modelo)
 my.hnp <- hnp(r,halfnormal = F, print.on=TRUE, plot=FALSE)
