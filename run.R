@@ -27,6 +27,29 @@ shapiro.test(dados$RESP)
 
 View(dados)
 
+
+# FUNÇÃO PARA CRIAR O CONTEXTO SUBJECT
+# Ler a calcula a quantidade de tratamentos, virifica se há ou não 
+# dissonância e cria uma variável do tipo subject, ou seja, um contexto 
+# de agrupamento dos tratamentos.
+cria.subject <- function(dados) {
+  base.subject <- data.frame(dados%>%group_by(ESP)%>%count())
+  comparador <- mean(base.subject$n)
+  subject <- comparador
+  for (i in base.subject$n) {
+    if (comparador != i) {
+      subject <- NULL
+      break
+    }
+  }
+  temp <- length(dados$ESP)/comparador
+  subject <- as.factor(rep(c(1:temp),rep(comparador,temp)))
+  return(subject)
+}
+
+subject <- cria.subject(dados)
+subject
+
 y <- dados$RESP
 y
 tratamento <- as.factor(dados$ESP)
