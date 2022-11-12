@@ -5,6 +5,14 @@ require(gamlss)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(stringr)
+
+### Biblioteca de comunicação API
+if(!require('httr')) {
+  install.packages('httr')
+  library('httr')
+}
+
 
 # Para o conjunto de dados r1.txt, considerar as seguintes variáveis:
 #   ESP:    relativo a espécie do feijão (== TRATAMENTO)
@@ -13,11 +21,6 @@ library(ggplot2)
 
 # Apontamento para o diretório de trabalho e carregamento dos dados
 setwd('/home/marlon-rogerio/apps/tese-guiomar')
-
-# Carregamento da distribuição de tratamento dos dados
-source.with.encoding("OLLST-gamlss.R", encoding = 'UTF-8')
-source.with.encoding("OLLSN-gamlss.R", encoding = 'UTF-8')
-
 dados = read.table("v5.txt", h = T)
 shapiro.test(dados$RESP)
 # W = 0.86129, p-value = 1.754e-08
@@ -41,7 +44,8 @@ ggplot(dados, aes(x=hora, y=y, group=1)) +
     labs(x="Hora", y="Y")
 
 tratamento
-e_tratamento = relevel(tratamento,"AGET") # Comparação em relação ao tratamento 1
+tratamento.evidencia <- "AGET"
+e_tratamento = relevel(tratamento, tratamento_evidencia) # Comparação em relação ao tratamento 1
 e_tratamento
 hora
 t3 <- gamlss(y ~ re(fixed = ~ hora+hora:e_tratamento, random = ~ 1|subject), data = dados, family = "RG", n.cyc=1000)
@@ -56,10 +60,78 @@ return <- summary(getSmo(t3))
 ## do vetor de níveis da unidade temporal do experimento, nesse caso, para 
 ## retirar a saída do intercepto do tTable, basta ler tal vetor e deduzir 
 ## a quantidade de linhas no tTable
-tempos <- levels(hora)
+niveis_de_tempo <- levels(hora)
 
-tTable <- return$tTable ## Velores de interesse e comparação de cada tratamento dentro de cada tempo 
-novo_frame <- 
+# Captura a saída dos 
+tTable <- return$tTable ## Velores de interesse e comparação de cada tratamento dentro de cada tempo
+tTable <- slice(data.frame(tTable), -(1:length(niveis_de_tempo)))
+
+## A primeira coluna dos frames retornados são chamadas observações. Não há cabeçalho que idetifique-as 
+# nesse caso é necessário capturar os dados capturar os nomes de cada linha (obsevações) para que 
+# possamos quebrar a string de dados a função row.names faz essa captura. 
+string_bruta_comparacoes <- row.names(tTable[,0])
+# string_bruta_comparacoes <- string_bruta_comparacoes[-c(1:length(niveis_de_tempo))]
+# string_bruta_comparacoes
 
 
+# É necessário correr toda a lista de comparações e segmentar a string 
+# em colunas para que fique vizivelmente melhor
+cont <- 1
+tempos <- NULL
+tratamentos.comparado <- NULL
+temp <- NULL
 
+while(cont <= length(string_bruta_comparacoes)){
+  # print(string_bruta_comparacoes[cont])
+  temp <- NULL
+  temp <- str_split(string_bruta_comparacoes[cont], ':e_tratamento', simplify = TRUE)
+  ## Verifica se e a variável está vazia. Se esse for o caso,
+  # o primero valor é inserido
+  if (is.null(tratamentos.comparado)) {
+    tratamentos.comparado <- c(temp[,2])
+  } else {
+    # Se já houver algum valor na variável um novo valor será acrescentado
+    tratamentos.comparado <- append(tratamentos.comparado, temp[,2])
+  }
+  if (is.null(tempos)) {
+    tempos <- str_split(temp, 'hora', simplify = TRUE)[1,2]
+    string_bruta_comparacoes
+  } else {
+    tempos <- append(tempos, c(str_split(temp, 'hora', simplify = TRUE)[1,2]))
+  }
+  cont <- cont + 1
+}
+
+tratamento.evidencia <- rep(tratamento.evidencia, length(tempos))
+value <- tTable[,1]
+Std.Error<- tTable[,2]
+DF <- tTable[,3]
+t.value <- tTable[,4]
+p.value<- tTable[,5]
+
+significancia <- NULL
+
+###
+## Verificando a significância dos dados pelo p.valor
+for (j in p.value) {
+  if (is.null(significancia)){
+    if (j < 0.5) {
+      significancia <- c("*")
+    } else {
+      significancia <- c("SN")
+    }
+  }else {
+    if (j < 0.5) {
+      significancia <- append(significancia, "*")
+    } else {
+      significancia <- append(significancia, "SN")
+    }
+  }
+}
+
+###
+## Monta uma nova tTable
+novo_frame <- data.frame(
+  tempos, tratamento.evidencia, tratamentos.comparado,
+  value, Std.Error, DF, t.value, p.value, significancia
+)
