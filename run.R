@@ -152,11 +152,13 @@ dados <- data.frame(y,tratamento,grupo,epoca)
 lista.tratamentos <- levels(tratamento)
 
 
-#   Criação do gráfico de perfis
 ggplot(dados, aes(x=epoca, y=y, group=1)) +
   geom_line() + 
-    geom_point() + 
-    labs(x="ÉPOCA", y="Y")
+  geom_point() + 
+  labs(x="ÉPOCA", y="Y")
+
+ggsave('imagem.png')
+
 
 tabela.a <- NULL
 tabela.b <- NULL
