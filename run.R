@@ -5,8 +5,9 @@ require(gamlss)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(stringr)
 library(httr)
+library(microbenchmark)
+
 
 
 #   Para o conjunto de dados r1.txt, considerar as seguintes variáveis:
@@ -159,7 +160,6 @@ ggplot(dados, aes(x=epoca, y=y, group=1)) +
 
 ggsave('imagem.png')
 
-
 tabela.a <- NULL
 tabela.b <- NULL
 tabela.c <- NULL
@@ -180,9 +180,8 @@ for (i in lista.tratamentos) {
     tabela.a <- data.frame(tabela.c)
   } else {
     tabela.b <- tabela.a
+    
     tabela.a <- rbind(tabela.b,tabela.c)
   }
   print(tabela.a)
 }
-
-
