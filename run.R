@@ -7,6 +7,7 @@ library(tidyr)
 library(ggplot2)
 library(httr)
 library(microbenchmark)
+library(sqldf)
 
 
 
@@ -144,6 +145,37 @@ ajuste.tabela <- function(t.table, tratamento.evidencia, dados) {
 }
 
 
+#   Função para elimitar as combinações de tratamentos existentes. 
+filtra.combinacoes <- function(tabela.a, tabela.b, tabela.c) {
+  for (i in 1:nrow(tabela.c)){
+    t <- tabela.c$tempos
+    a <- tabela.c$tratamento.evidencia
+    b <- tabela.c$tratamentos.comparado
+    
+    temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==a)
+    
+    if (is.null(temp) == FALSE){
+      temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==a, tabela.a$tratamentos.comparado==b)
+      
+      if (is.null(temp) == FALSE) {
+        tabela.b <- tabela.b[!(tabela.b$tempos==0 && tabela.b$tratamento.evidencia==a && tabela.b$tratamentos.comparado==b)]
+      }
+    } else {
+      
+      temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==b)
+      if (is.null(temp) == FALSE){
+        temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==b, tabela.a$tratamentos.comparado==a)
+        
+        if (is.null(temp) == FALSE) {
+          tabela.b <- tabela.b[!(tabela.b$tempos==0 && tabela.b$tratamento.evidencia==b && tabela.b$tratamentos.comparado==a)]
+        }
+      }
+    }
+  }
+  return(tabela.b)
+}
+
+
 #   Bloco de variáveis
 y <- dados$RESP
 grupo <- cria.grupo(dados)
@@ -179,9 +211,8 @@ for (i in lista.tratamentos) {
   if (is.null(tabela.b)){
     tabela.a <- data.frame(tabela.c)
   } else {
-    tabela.b <- tabela.a
-    
-    tabela.a <- rbind(tabela.b,tabela.c)
+    tabela.b <- tabela.c
   }
-  print(tabela.a)
 }
+
+
