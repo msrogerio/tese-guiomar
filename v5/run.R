@@ -1,14 +1,11 @@
 library(nlme)
-require(esquisse)
 require(hnp)
 require(gamlss)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(httr)
-library(microbenchmark)
 library(sqldf)
-
 
 
 #   Para o conjunto de dados r1.txt, considerar as seguintes variáveis:
@@ -20,7 +17,7 @@ setwd('/home/marlon-rogerio/apps/tese-guiomar')
 dados = read.table("v5.txt", h = T)
 
 shapiro.test(dados$RESP) # Teste de normailidade
-View(dados)
+# View(dados)
 
 
 #   FUNÇÃO PARA CRIAR O CONTEXTO grupo
@@ -97,13 +94,13 @@ verifica.significancia <- function(p.valor){
       if (j < 0.5) {
         significancia <- c("*")
       } else {
-        significancia <- c("SN")
+        significancia <- c("NS")
       }
     }else {
       if (j < 0.5) {
         significancia <- append(significancia, "*")
       } else {
-        significancia <- append(significancia, "SN")
+        significancia <- append(significancia, "NS")
       }
     }
   }
@@ -145,37 +142,6 @@ ajuste.tabela <- function(t.table, tratamento.evidencia, dados) {
 }
 
 
-#   Função para elimitar as combinações de tratamentos existentes. 
-filtra.combinacoes <- function(tabela.a, tabela.b, tabela.c) {
-  for (i in 1:nrow(tabela.c)){
-    t <- tabela.c$tempos
-    a <- tabela.c$tratamento.evidencia
-    b <- tabela.c$tratamentos.comparado
-    
-    temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==a)
-    
-    if (is.null(temp) == FALSE){
-      temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==a, tabela.a$tratamentos.comparado==b)
-      
-      if (is.null(temp) == FALSE) {
-        tabela.b <- tabela.b[!(tabela.b$tempos==0 && tabela.b$tratamento.evidencia==a && tabela.b$tratamentos.comparado==b)]
-      }
-    } else {
-      
-      temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==b)
-      if (is.null(temp) == FALSE){
-        temp <- dplyr::filter(tabela.a, tabela.a$tempos==t, tabela.a$tratamento.evidencia==b, tabela.a$tratamentos.comparado==a)
-        
-        if (is.null(temp) == FALSE) {
-          tabela.b <- tabela.b[!(tabela.b$tempos==0 && tabela.b$tratamento.evidencia==b && tabela.b$tratamentos.comparado==a)]
-        }
-      }
-    }
-  }
-  return(tabela.b)
-}
-
-
 #   Bloco de variáveis
 y <- dados$RESP
 grupo <- cria.grupo(dados)
@@ -195,6 +161,7 @@ ggsave('imagem.png')
 tabela.a <- NULL
 tabela.b <- NULL
 tabela.c <- NULL
+cont <- 1
 
 #  Persistência do ajuste para cada tratamento 
 for (i in lista.tratamentos) {
@@ -206,13 +173,10 @@ for (i in lista.tratamentos) {
   niveis.tempo <- levels(epoca)
   tabela.t <- slice(data.frame(tabela.t), -(1:length(niveis.tempo)))
   
-  tabela.c <- ajuste.tabela(tabela.t, i, dados)
-  
-  if (is.null(tabela.b)){
-    tabela.a <- data.frame(tabela.c)
-  } else {
-    tabela.b <- tabela.c
-  }
+  tabela.a <- ajuste.tabela(tabela.t, i, dados)
+  nome.arquivo <- sprintf("%s/result/%s.csv", getwd(), cont)
+  write.table(tabela.a, file = nome.arquivo, sep=",", na="", quote=TRUE, row.names=FALSE)
+  cont <- cont +1
 }
 
 
